@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-# Run pending migrations
+# Run migrations
 php artisan migrate --force
 
-# Ensure storage link
+# Ensure storage symlink
 php artisan storage:link || true
 
-# Finally start Apache
+# Start Apache in foreground
 apache2-foreground
