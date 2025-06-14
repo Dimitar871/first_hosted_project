@@ -8,20 +8,32 @@ use Illuminate\Http\Request;
 class TaskController extends Controller
 {
     public function index()
-    {
-        $tasks = Task::all();
-        return view('tasks.index', compact('tasks'));
-    }
+{
+    $tasks = Task::all();
+    return view('tasks.index', compact('tasks'));
+}
 
     public function create()
-    {
-        return view('tasks.create');
-    }
+{
+   
+    return view('tasks.create');
+}
 
     public function store(Request $request)
     {
-        Task::create($request->all());
-        return redirect()->route('tasks.index');
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        Task::create($request->only('title', 'description'));
+
+        return redirect()->route('tasks.index')->with('success', 'Task created successfully.');
+    }
+
+    public function show(Task $task)
+    {
+        return view('tasks.show', compact('task'));
     }
 
     public function edit(Task $task)
@@ -31,13 +43,20 @@ class TaskController extends Controller
 
     public function update(Request $request, Task $task)
     {
-        $task->update($request->all());
-        return redirect()->route('tasks.index');
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $task->update($request->only('title', 'description'));
+
+        return redirect()->route('tasks.index')->with('success', 'Task updated successfully.');
     }
 
     public function destroy(Task $task)
     {
         $task->delete();
-        return redirect()->route('tasks.index');
+
+        return redirect()->route('tasks.index')->with('success', 'Task deleted successfully.');
     }
 }
