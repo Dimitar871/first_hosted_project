@@ -9,46 +9,45 @@ RUN apt-get update \
  && docker-php-ext-install pdo pdo_pgsql mbstring xml zip \
  && a2enmod rewrite
 
-# 3. Tell Apache to serve from public/
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+# 3. Point Apache at public/
 RUN sed -ri \
-    -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
+    -e 's!/var/www/html!/var/www/html/public!g' \
     /etc/apache2/sites-available/*.conf
 
-# 4. Install Composer binary
+# 4. Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# 5. Set working dir
+# 5. Working directory
 WORKDIR /var/www/html
 
-# 6. Copy only composer manifest and example env
+# 6. Copy composer files + example env
 COPY composer.json composer.lock .env.example ./
 
-# 7. Seed a temporary .env & install PHP deps without running scripts
+# 7. Temp .env & composer install (no scripts)
 RUN cp .env.example .env \
  && composer install --no-dev --optimize-autoloader --prefer-dist --no-scripts
 
-# 8. Copy the rest of your application code
+# 8. Copy app code
 COPY . .
 
-# 9. Generate application key (overridden by Render at runtime)
+# 9. Key generate
 RUN php artisan key:generate --force
 
-# 10. Build front-end assets
+# 10. Frontend build
 RUN npm install && npm run build
 
-# 11. Optimize autoload and discover packages now that .env exists
+# 11. Autoload & package discovery
 RUN composer dump-autoload --optimize --ansi \
  && php artisan package:discover --ansi
 
-# 12. Fix permissions
+# 12. Permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# 13. Entrypoint (remove baked .env so Render env vars are used, migrate, link storage, start Apache)
+# 13. Entrypoint
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["entrypoint.sh"]
 
-# 14. Expose port 80
+# 14. Expose port
 EXPOSE 80
